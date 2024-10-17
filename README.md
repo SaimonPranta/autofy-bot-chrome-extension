@@ -1,2 +1,1 @@
-# autofy-bot-chrome-extensions
-# autofy-bot-chrome-extension
+# autofy-bot-chrome-extensions 
