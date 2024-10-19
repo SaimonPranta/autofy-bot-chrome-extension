@@ -8,114 +8,102 @@ document.getElementById('clickSubmit').addEventListener('click', () => {
 });
 
 
-const waitHere = (time) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve("done");
-        }, time || 100);
-    });
-}
+
 
 const clickSubmitButton = async () => {
-    console.log("hello form")
-    try {
-
-        const chatGptPrompt = " rewrite this news make the html layout same rewrite inner text, inner text main context and information will be same but line will be more changed"
-        const article = ""
-
-
-        const inputText = `${chatGptPrompt} (${article})`
-        console.log("1")
-
-        const inputFields = await document.querySelectorAll('div[id="prompt-textareaa"]');
-        console.log("2")
-
-        if (!inputFields.length) {
-            return
-        }
-
-        const inputP = await inputFields[0].querySelector("p")
-        if (!inputP) {
-            return
-        }
-
-        inputP.innerText = await inputText
-
-        await waitHere(1000)
-
-        console.log("after wait")
-
-        const submitButton = await document.querySelector('button[aria-label="Send prompt"][data-testid="send-button"]');
-        if (!submitButton) {
-            return
-        }
-        await submitButton.click()
-        await waitHere(1000)
-
-        const outPutFieldList = await document.querySelectorAll('code[class="!whitespace-pre hljs language-html"]');
-        if (!outPutFieldList.length) {
-            return
-        }
-        const outPutField = await outPutFieldList[outPutFieldList.length - 1]
-        console.log("outPutField ==>>", outPutField)
-        console.log("outPutField ==>>", outPutField.innerText)
-
-
-
-
-    } catch (error) {
-        console.log("error ==>>", error)
-    }
-}
-
-
-const clickSubmitButtons = () => {
-    const chatGptPrompt = " rewrite this news make the html layout same rewrite inner text, inner text main context and information will be same but line will be more changed"
-    const article = ""
-
-
-    const inputText = `${chatGptPrompt} (${article})`
-
-
-    const inputFields = document.querySelectorAll('div[id="prompt-textarea"]');
-    const submitButton = document.querySelector('button[aria-label="Send prompt"][data-testid="send-button"]');
-    if (submitButton) {
-        console.log("submitButton =>>", submitButton)
-        submitButton.click()
-    }
-
-    if (inputFields.length > 0) {
-        const inputP = inputFields[0].querySelector("p")
-        console.log("inputP", inputP)
-
-        if (inputP) {
-            inputP.innerText = inputText
+    const waitHere = (time) => {
+        return new Promise((resolve) => {
             setTimeout(() => {
-                const submitButton = document.querySelector('button[aria-label="Send prompt"][data-testid="send-button"]');
-                if (submitButton) {
-                    console.log("submitButton =>>", submitButton)
-                    submitButton.click()
-                }
-                setTimeout(() => {
-                    const outPutFieldList = document.querySelectorAll('code[class="!whitespace-pre hljs language-html"]');
-                    if (outPutFieldList.length) {
-                        const outPutField = outPutFieldList[outPutFieldList.length - 1]
-                        console.log("outPutField ==>>", outPutField)
-                        console.log("outPutField ==>>", outPutField.innerText)
-
-                    }
-                }, 3000);
-
-
-            }, 100);
-
-        }
-        // Trigger input and change events to simulate typing interaction
-        // inputFields[0].dispatchEvent(new Event('input', { bubbles: true }));
-        // inputFields[0].dispatchEvent(new Event('change', { bubbles: true }));
-
-        console.log("Text typed in the textarea.")
-    } else {
-        alert('No submit button found.');
+                resolve("done");
+            }, time || 100);
+        });
     }
+    const waitForOutputProcess = (time) => {
+        return new Promise((resolve) => {
+            setInterval(() => {
+                const checkOutputProcessing = document.querySelector('button[aria-label="Stop streaming"][data-testid="stop-button"]');
+                if (!checkOutputProcessing) {
+                    resolve("done")
+                }
+            }, time || 1000);
+
+        });
+    }
+    const modifyNews = async (article) => {
+        try {
+
+            const chatGptPrompt = " rewrite this news make the html layout same rewrite inner text, inner text main context and information will be same but line will be more changed"
+            const inputText = `${chatGptPrompt} (${article})`
+            const inputFields = await document.querySelectorAll('div[id="prompt-textarea"]');
+            if (!inputFields.length) {
+                return
+            }
+            const inputP = await inputFields[0].querySelector("p")
+            if (!inputP) {
+                return
+            }
+
+            inputP.innerText = await inputText
+
+            await waitHere(1000)
+            const submitButton = await document.querySelector('button[aria-label="Send prompt"][data-testid="send-button"]');
+            if (!submitButton) {
+                return
+            }
+            await submitButton.click()
+            await waitHere(20000)
+            await waitForOutputProcess(30000)
+
+            const outPutFieldList = await document.querySelectorAll('code[class="!whitespace-pre hljs language-html"]');
+            if (!outPutFieldList.length) {
+                return
+            }
+            const outPutField = await outPutFieldList[outPutFieldList.length - 1]
+            const output = await outPutField.innerText
+            if (!output) {
+                return
+            }
+            return output
+
+        } catch (error) {
+            console.log("Error form modifyNews:-", error)
+        }
+    }
+    const getNewsProcess = async () => {
+        try {
+            const newsResponse = await fetch(`http://localhost:5001/chrome-extension/get-collected-news`)
+            const { data } = await newsResponse.json()
+            if (data && data.htmlDescription) {
+                const modifyData = await modifyNews(data.htmlDescription)
+                console.log("modifyData ==>>", modifyData)
+                if (modifyData) {
+                    await fetch(`http://localhost:5001/chrome-extension/send-news`, {
+                        method: "POST",
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            ...data,
+                            modifyData
+                        })
+                    })
+
+                }
+            }
+            await getNewsProcess(3000)
+
+        } catch (error) {
+            console.log("Error from getNewsProcess:-", error)
+        }
+    }
+
+    try {
+        await getNewsProcess()
+    } catch (error) {
+        console.log("Error form clickSubmitButton :-", error)
+    }
+
 }
+
+
+
