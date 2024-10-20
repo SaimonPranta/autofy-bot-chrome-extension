@@ -1,0 +1,25 @@
+.popup-page{
+    height: 40px;
+    width: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    .start-btn{
+        background-color: #e4e4e4;
+        color: #000;
+        font-weight: 700;
+        border: none;
+        outline: none;
+        border-radius: 4px;
+        padding: 5px 0px; 
+        width: 80%;
+        text-transform: uppercase;
+        cursor: pointer;
+    }
+    .start-btn:hover{
+        opacity: .8;
+    }
+    .start-btn:active{
+        transform: scale(.97);
+    }
+}
