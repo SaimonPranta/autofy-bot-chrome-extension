@@ -33,15 +33,15 @@ const clickSubmitButton = async () => {
         try {
 
             const chatGptDesPrompt = " rewrite this news make the html layout same rewrite inner text, inner text main context and information will be same but line will be more changed"
+            const chatGptDesEndPrompt = "result show in code element"
             const chatGptTitlePrompt = "keep this title content same just rewrite it"
             const chatGptTitleEndPrompt = "give me only title result plain text, nothing else not."
             let inputText = ""
             if (type === "Title") {
-                inputText = `${chatGptTitlePrompt}:- (${article}). ${chatGptTitleEndPrompt}`
+                inputText = `${chatGptTitlePrompt}:- (${article}). ${chatGptTitleEndPrompt}`;
             } else {
-                inputText = `${chatGptDesPrompt}:- (${article}). ${chatGptTitleEndPrompt}`
+                inputText = `${chatGptDesPrompt}:- (${article}). ${chatGptDesEndPrompt}`;
             }
-            console.log("inputText =>", inputText)
             const inputFields = await document.querySelectorAll('div[id="prompt-textarea"]');
             if (!inputFields.length) {
                 return
@@ -65,11 +65,8 @@ const clickSubmitButton = async () => {
             } else {
                 await waitForOutputProcess(30000)
             }
-            console.log("hello befor output ele")
             if (type === "Title") {
-                // group/conversation-turn
                 const outPutFieldList = await document.querySelectorAll('div[class="group/conversation-turn relative flex w-full min-w-0 flex-col agent-turn"]');
-                console.log('outPutFieldList =>', outPutFieldList)
                 if (!outPutFieldList.length) {
                     return
                 }
@@ -103,9 +100,13 @@ const clickSubmitButton = async () => {
             const { data } = await newsResponse.json()
             if (data && data.htmlDescription) {
                 const modifyTitle = await modifyNews(data.title, "Title")
-                const modifyData = await modifyNews(data.htmlDescription)
-                console.log("modifyData ==>>", modifyData)
-                if (modifyData) {
+                console.log("modifyTitle ==>>", modifyTitle)
+                const modifyHtmlDescription = await modifyNews(data.htmlDescription)
+                console.log("modifyHtmlDescription ==>>", modifyHtmlDescription)
+                if (modifyTitle && modifyHtmlDescription) {
+                    const divElement = document.createElement("div")
+                    divElement.innerHTML = modifyHtmlDescription
+                    const modifyDescription = divElement.innerText
                     await fetch(`http://localhost:5001/chrome-extension/send-news`, {
                         method: "POST",
                         headers: {
@@ -114,7 +115,8 @@ const clickSubmitButton = async () => {
                         body: JSON.stringify({
                             ...data,
                             modifyTitle,
-                            modifyData,
+                            modifyHtmlDescription,
+                            modifyDescription
                         })
                     })
 
@@ -128,9 +130,7 @@ const clickSubmitButton = async () => {
     }
 
     try {
-        // await getNewsProcess()
-        const modifyTitle = await modifyNews("বিচারপতি অপসারণে সুপ্রিম জুডিশিয়াল কাউন্সিল ফিরল", "Title")
-        console.log("modifyTitle ==>>", modifyTitle)
+        await getNewsProcess()
     } catch (error) {
         console.log("Error form clickSubmitButton :-", error)
     }
