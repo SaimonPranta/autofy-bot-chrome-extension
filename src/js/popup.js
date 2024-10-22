@@ -8,7 +8,6 @@ document.getElementById('clickSubmit').addEventListener('click', () => {
 });
 
 
-// keep this title content same just rewrite it (বিচারপতি অপসারণে সুপ্রিম জুডিশিয়াল কাউন্সিল ফিরল). give me only title result, nothing else.
 
 const clickSubmitButton = async () => {
     const waitHere = (time) => {
@@ -18,10 +17,14 @@ const clickSubmitButton = async () => {
             }, time || 100);
         });
     }
-    const waitForOutputProcess = (time) => {
-        return new Promise((resolve) => {
+    const waitForOutputProcess = (time, selector) => {
+        console.log("selector ==>>", selector)
+        return new Promise((resolve, reject) => {
+            if (!selector) {
+                resolve("Query selector are required")
+            }
             setInterval(() => {
-                const checkOutputProcessing = document.querySelector('button[aria-label="Stop streaming"][data-testid="stop-button"]');
+                const checkOutputProcessing = document.querySelector(selector);
                 if (!checkOutputProcessing) {
                     resolve("done")
                 }
@@ -36,9 +39,14 @@ const clickSubmitButton = async () => {
             const chatGptDesEndPrompt = "result show in code element"
             const chatGptTitlePrompt = "keep this title content same just rewrite it"
             const chatGptTitleEndPrompt = "give me only title result plain text, nothing else not."
+            const chatGptCategoryPrompt = "Give me the Bengali meaning of this word"
+            const chatGptCategoryEndPrompt = "Give me only Bengali  meaning nothing else"
+
             let inputText = ""
             if (type === "Title") {
                 inputText = `${chatGptTitlePrompt}:- (${article}). ${chatGptTitleEndPrompt}`;
+            } else if (type === "Category" || type === "Subcategory") {
+                inputText = `${chatGptCategoryPrompt}:- ( ${article} ). ${chatGptCategoryEndPrompt}`;
             } else {
                 inputText = `${chatGptDesPrompt}:- (${article}). ${chatGptDesEndPrompt}`;
             }
@@ -54,18 +62,32 @@ const clickSubmitButton = async () => {
             inputP.innerText = await inputText
 
             await waitHere(1000)
+
             const submitButton = await document.querySelector('button[aria-label="Send prompt"][data-testid="send-button"]');
             if (!submitButton) {
                 return
             }
             await submitButton.click()
-            await waitHere(20000)
+            // await waitHere(100)
+            // if (type === "Title") {
+            // } else {
+            // }
+            const outputSectionSelector = 'button[aria-label="Stop streaming"][data-testid="stop-button"]'
             if (type === "Title") {
-                await waitForOutputProcess(3000)
-            } else {
-                await waitForOutputProcess(30000)
-            }
-            if (type === "Title") {
+                await waitForOutputProcess(3000, outputSectionSelector)
+                const outPutFieldList = await document.querySelectorAll('div[class="group/conversation-turn relative flex w-full min-w-0 flex-col agent-turn"]');
+                if (!outPutFieldList.length) {
+                    return
+                }
+                const outPutField = await outPutFieldList[outPutFieldList.length - 1]
+                const outPutParagraphField = await outPutField.querySelector("p")
+                const output = await outPutParagraphField.innerText
+                if (!output) {
+                    return
+                }
+                return output
+            } else if (type === "Category" || type === "Subcategory") {
+                await waitForOutputProcess(3000, outputSectionSelector)
                 const outPutFieldList = await document.querySelectorAll('div[class="group/conversation-turn relative flex w-full min-w-0 flex-col agent-turn"]');
                 if (!outPutFieldList.length) {
                     return
@@ -78,6 +100,7 @@ const clickSubmitButton = async () => {
                 }
                 return output
             } else {
+                await waitForOutputProcess(30000, outputSectionSelector)
                 const outPutFieldList = await document.querySelectorAll('code[class="!whitespace-pre hljs language-html"]');
                 if (!outPutFieldList.length) {
                     return
@@ -96,11 +119,28 @@ const clickSubmitButton = async () => {
     }
     const getNewsProcess = async () => {
         try {
+
+            const domainName = window.location.hostname;
+            if (domainName !== "chatgpt.com") {
+                return
+            }
             const newsResponse = await fetch(`http://localhost:5001/chrome-extension/get-collected-news`)
             const { data } = await newsResponse.json()
             if (data && data.htmlDescription) {
                 const modifyTitle = await modifyNews(data.title, "Title")
                 console.log("modifyTitle ==>>", modifyTitle)
+                let categoryLabel = null
+                let subcategoryLabel = null
+
+                if (data.category) {
+                    categoryLabel = await modifyNews(data.category, "Category")
+                    console.log("categoryLabel ==>>", categoryLabel)
+                }
+                if (data.subcategory) {
+                    subcategoryLabel = await modifyNews(data.subcategory, "Subcategory")
+                    console.log("subcategoryLabel ==>>", subcategoryLabel)
+                }
+
                 const modifyHtmlDescription = await modifyNews(data.htmlDescription)
                 console.log("modifyHtmlDescription ==>>", modifyHtmlDescription)
                 if (modifyTitle && modifyHtmlDescription) {
@@ -116,7 +156,9 @@ const clickSubmitButton = async () => {
                             ...data,
                             modifyTitle,
                             modifyHtmlDescription,
-                            modifyDescription
+                            modifyDescription,
+                            categoryLabel,
+                            subcategoryLabel,
                         })
                     })
 
