@@ -3,7 +3,7 @@
     "name": "Autofy Bot",
     "version": "1.0",
     "description": "Automatically clicks submit buttons on any website.",
-    "permissions": ["activeTab", "scripting"],
+    "permissions": ["tabs", "activeTab", "scripting"],
     "background": {
       "service_worker": "background.js"
     },
