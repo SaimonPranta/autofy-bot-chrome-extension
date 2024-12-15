@@ -216,14 +216,14 @@ const clickSubmitButton = async () => {
 
   try {
    
-    setInterval(async () => {
-      // const title = await modifyNews(
-      //   "প্রধান উপদেষ্টা ড. ইউনূসের সঙ্গে বিএনপির ৩ নেতার বৈঠক",
-      //   "Title"
-      // );
-      console.log("title ========>>>", title);
-    }, 3000);
-    // await getNewsProcess()
+    // setInterval(async () => {
+    //   const title = await modifyNews(
+    //     "প্রধান উপদেষ্টা ড. ইউনূসের সঙ্গে বিএনপির ৩ নেতার বৈঠক",
+    //     "Title"
+    //   );
+    //   console.log("title ========>>>", title);
+    // }, 3000);
+    await getNewsProcess()
   } catch (error) {
     console.log("Error form clickSubmitButton :-", error);
   }
