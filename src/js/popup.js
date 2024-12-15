@@ -2,20 +2,12 @@ document.getElementById("clickSubmit").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     chrome.scripting.executeScript({
       target: { tabId: tabs[0].id },
-      // function: testFunc
-      function: clickSubmitButton,
+      function: clickSubmitButton
     });
   });
 });
 
-const testFunc = () => {
-  setInterval(() => {
-    // const ele = document.querySelector(".transition-width")
-    const ele = document.querySelector("#spacemyfooter");
-
-    console.log("ele =====>>>", ele);
-  }, 3000);
-};
+ 
 
 const clickSubmitButton = async () => {
   const waitHere = (time) => {
@@ -73,40 +65,51 @@ const clickSubmitButton = async () => {
       const chatGptTitlePrompt = "keep this title content same just rewrite it";
       const chatGptTitleEndPrompt =
         "give me only title result plain text, nothing else not.";
-      const chatGptCategoryPrompt = "Give me the Bengali meaning of this word";
-      const chatGptCategoryEndPrompt =
+      const chatGptCategoryLabelPrompt =
+        "Give me the Bengali meaning of this word";
+      const chatGptCategoryLabeEndPrompt =
         "Give me only Bengali  meaning nothing else";
+      const chatGptCategoryRoutePrompt =
+        "Give me the English meaning of this word";
+      const chatGptCategoryRouteEndPrompt =
+        "Give me only English  meaning nothing else";
 
       let inputText = "";
       if (type === "Title") {
         inputText = `${chatGptTitlePrompt}:- (${article}). ${chatGptTitleEndPrompt}`;
-      } else if (type === "Category" || type === "Subcategory") {
-        inputText = `${chatGptCategoryPrompt}:- ( ${article} ). ${chatGptCategoryEndPrompt}`;
+      } else if (type === "Category Label" || type === "Subcategory Label") {
+        inputText = `${chatGptCategoryLabelPrompt}:- ( ${article} ). ${chatGptCategoryLabeEndPrompt}`;
+      } else if (type === "Category Route" || type === "Subcategory Route") {
+        inputText = `${chatGptCategoryRoutePrompt}:- ( ${article} ). ${chatGptCategoryRouteEndPrompt}`;
       } else {
         inputText = `${chatGptDesPrompt}:- (${article}). ${chatGptDesEndPrompt}`;
       }
       const inputFields = await document.querySelectorAll(
         'div[id="prompt-textarea"]'
       );
+      console.log("inputFields ==>>", inputFields);
       if (!inputFields.length) {
         return;
       }
       const inputP = await inputFields[0].querySelector("p");
       if (!inputP) {
+        console.log("inputP not found ==>");
+
         return;
       }
-      await waitForSubmitButtonReady(1000, submitBtnSelector);
       inputP.innerText = await inputText;
       const submitBtnSelector =
         'button[aria-label="Send prompt"][data-testid="send-button"]';
-
-      await waitHere(1000);
-    //   await waitForSubmitButtonReady(1000, submitBtnSelector);
+      await waitForSubmitButtonReady(1000, submitBtnSelector);
+      console.log("submitBtnSelector ==>>", submitBtnSelector);
+      // await waitHere(1000);
+      //   await waitForSubmitButtonReady(1000, submitBtnSelector);
       const submitButton = await document.querySelector(submitBtnSelector);
       if (!submitButton) {
+        console.log("submitButton not found ==>");
         return;
       }
-      await submitButton.click(); 
+      await submitButton.click();
 
       const outputSectionSelector =
         'button[aria-label="Stop streaming"][data-testid="stop-button"]';
@@ -116,6 +119,8 @@ const clickSubmitButton = async () => {
           'div[class="group/conversation-turn relative flex w-full min-w-0 flex-col agent-turn"]'
         );
         if (!outPutFieldList.length) {
+          console.log("outPutFieldList not found ==>");
+
           return;
         }
         const outPutField = await outPutFieldList[outPutFieldList.length - 1];
@@ -161,69 +166,98 @@ const clickSubmitButton = async () => {
   };
   const getNewsProcess = async () => {
     try {
+      console.log("hello from start function")
+      const serverDomain = "http://localhost:8001";
       const domainName = window.location.hostname;
-      if (domainName !== "chatgpt.com" || window.continueScraping) {
+      if (domainName !== "chatgpt.com" ) {
         return;
       }
-      window.continueScraping = true 
-      
+
       const newsResponse = await fetch(
-        `http://localhost:5001/chrome-extension/get-collected-news`
+        `${serverDomain}/chrome-extension/get-collected-news`
       );
       const { data } = await newsResponse.json();
       if (data && data.htmlDescription) {
         const modifyTitle = await modifyNews(data.title, "Title");
-        console.log("modifyTitle ==>>", modifyTitle);
-        let categoryLabel = null;
-        let subcategoryLabel = null;
+        const modifyHtmlDescription = await modifyNews(data.htmlDescription);
+        let categoryInfo = { route: "", label: "" };
+        let subcategoryInfo = { route: "", label: "" };
 
         if (data.category) {
-          categoryLabel = await modifyNews(data.category, "Category");
-          console.log("categoryLabel ==>>", categoryLabel);
+          categoryInfo = { ...categoryInfo, ...data.category };
+          if (!data.category.route || !data.category.label) {
+            if (data.category.route && !data.category.label) {
+              categoryInfo.label = await modifyNews(
+                data.category.route.replaceAll("-", " "),
+                "Category Label"
+              )
+            }
+            if (!data.category.route && data.category.label) {
+              categoryInfo.route = await modifyNews(
+                data.category.label,
+                "Category Route"
+              ).replaceAll(" ", "-")
+            }
+          }
         }
         if (data.subcategory) {
-          subcategoryLabel = await modifyNews(data.subcategory, "Subcategory");
-          console.log("subcategoryLabel ==>>", subcategoryLabel);
+          subcategoryInfo = { ...subcategoryInfo, ...data.subcategory };
+          if (!data.subcategory.route || !data.subcategory.label) {
+            if (data.subcategory.route && !data.subcategory.label) {
+              subcategoryInfo.label = await modifyNews(
+                data.subcategory.route.replaceAll("-", " "),
+                "Subcategory Label"
+              );
+            }
+            if (!data.subcategory.route && data.subcategory.label) {
+              subcategoryInfo.route = await modifyNews(
+                data.subcategory.label,
+                "Subcategory Route"
+              ).replaceAll(" ", "-")
+            }
+          }
         }
 
-        const modifyHtmlDescription = await modifyNews(data.htmlDescription);
-        console.log("modifyHtmlDescription ==>>", modifyHtmlDescription);
-        if (modifyTitle && modifyHtmlDescription) {
+        console.log("modifyHtmlDescription ==>>", {
+          modifyTitle,
+          modifyHtmlDescription,
+          // modifyDescription,
+          categoryInfo,
+          subcategoryInfo
+        });
+
+        if ( modifyTitle && modifyHtmlDescription) {
           const divElement = document.createElement("div");
           divElement.innerHTML = modifyHtmlDescription;
           const modifyDescription = divElement.innerText;
-          await fetch(`http://localhost:5001/chrome-extension/send-news`, {
+          await fetch(`${serverDomain}/chrome-extension/send-news`, {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
+              "Content-Type": "application/json"
             },
             body: JSON.stringify({
               ...data,
               modifyTitle,
               modifyHtmlDescription,
               modifyDescription,
-              categoryLabel,
-              subcategoryLabel,
-            }),
+              categoryInfo,
+              subcategoryInfo
+            })
           });
         }
       }
-      await getNewsProcess(3000);
+      console.log("hello from before getNewsProcess --<<<")
+      await getNewsProcess();
     } catch (error) {
       console.log("Error from getNewsProcess:-", error);
     }
   };
-
   try {
-   
-    setInterval(async () => {
-      // const title = await modifyNews(
-      //   "প্রধান উপদেষ্টা ড. ইউনূসের সঙ্গে বিএনপির ৩ নেতার বৈঠক",
-      //   "Title"
-      // );
-      console.log("title ========>>>", title);
-    }, 3000);
-    // await getNewsProcess()
+    if (window.continueScraping) {
+      return
+    }
+    window.continueScraping = true;
+    await getNewsProcess();
   } catch (error) {
     console.log("Error form clickSubmitButton :-", error);
   }
