@@ -2,12 +2,10 @@ document.getElementById("clickSubmit").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     chrome.scripting.executeScript({
       target: { tabId: tabs[0].id },
-      function: clickSubmitButton
+      function: clickSubmitButton,
     });
   });
 });
-
- 
 
 const clickSubmitButton = async () => {
   const waitHere = (time) => {
@@ -17,7 +15,7 @@ const clickSubmitButton = async () => {
       }, time || 100);
     });
   };
-  const waitForOutputProcess = (time, selector) => {
+  const waitForOutputProcess = (time = 1000, selector) => {
     return new Promise((resolve, reject) => {
       if (!selector) {
         resolve("Query selector are required");
@@ -25,12 +23,14 @@ const clickSubmitButton = async () => {
       setInterval(() => {
         const checkOutputProcessing = document.querySelector(selector);
         if (!checkOutputProcessing) {
-          resolve("done");
+          setTimeout(() => {
+            resolve("done");
+          }, time);
         }
-      }, time || 1000);
+      }, time);
     });
   };
-  const waitForSubmitButtonReady = (time, selector) => {
+  const waitForSubmitButtonReady = (time = 1000, selector) => {
     return new Promise((resolve, reject) => {
       if (!selector) {
         resolve("Query selector are required");
@@ -38,12 +38,14 @@ const clickSubmitButton = async () => {
       setInterval(() => {
         const checkBtnExist = document.querySelector(selector);
         if (checkBtnExist) {
-          resolve("done");
+          setTimeout(() => {
+            resolve("done");
+          }, time);
         }
-      }, time || 1000);
+      }, time);
     });
   };
-  const waitInputFieldReady = (time, element) => {
+  const waitInputFieldReady = (time = 1000, element) => {
     return new Promise((resolve, reject) => {
       if (!selector) {
         resolve("Query selector are required");
@@ -51,9 +53,11 @@ const clickSubmitButton = async () => {
       setInterval(() => {
         const checkBtnExist = document.querySelector(selector);
         if (checkBtnExist) {
-          resolve("done");
+          setTimeout(() => {
+            resolve("done");
+          }, time);
         }
-      }, time || 1000);
+      }, time);
     });
   };
 
@@ -89,13 +93,15 @@ const clickSubmitButton = async () => {
       );
       console.log("inputFields ==>>", inputFields);
       if (!inputFields.length) {
-        return;
+        
+        return modifyNews(article, type)
       }
       const inputP = await inputFields[0].querySelector("p");
       if (!inputP) {
         console.log("inputP not found ==>");
 
-        return;
+        return modifyNews(article, type)
+
       }
       inputP.innerText = await inputText;
       const submitBtnSelector =
@@ -107,7 +113,8 @@ const clickSubmitButton = async () => {
       const submitButton = await document.querySelector(submitBtnSelector);
       if (!submitButton) {
         console.log("submitButton not found ==>");
-        return;
+        return modifyNews(article, type)
+
       }
       await submitButton.click();
 
@@ -121,13 +128,15 @@ const clickSubmitButton = async () => {
         if (!outPutFieldList.length) {
           console.log("outPutFieldList not found ==>");
 
-          return;
+          return modifyNews(article, type)
+
         }
         const outPutField = await outPutFieldList[outPutFieldList.length - 1];
         const outPutParagraphField = await outPutField.querySelector("p");
         const output = await outPutParagraphField.innerText;
         if (!output) {
-          return;
+          return modifyNews(article, type)
+
         }
         return output;
       } else if (type === "Category" || type === "Subcategory") {
@@ -136,13 +145,15 @@ const clickSubmitButton = async () => {
           'div[class="group/conversation-turn relative flex w-full min-w-0 flex-col agent-turn"]'
         );
         if (!outPutFieldList.length) {
-          return;
+          return modifyNews(article, type)
+
         }
         const outPutField = await outPutFieldList[outPutFieldList.length - 1];
         const outPutParagraphField = await outPutField.querySelector("p");
         const output = await outPutParagraphField.innerText;
         if (!output) {
-          return;
+          return modifyNews(article, type)
+
         }
         return output;
       } else {
@@ -151,25 +162,29 @@ const clickSubmitButton = async () => {
           'code[class="!whitespace-pre hljs language-html"]'
         );
         if (!outPutFieldList.length) {
-          return;
+          return modifyNews(article, type)
+
         }
         const outPutField = await outPutFieldList[outPutFieldList.length - 1];
         const output = await outPutField.innerText;
         if (!output) {
-          return;
+          return modifyNews(article, type)
         }
         return output;
       }
     } catch (error) {
       console.log("Error form modifyNews:-", error);
+      return modifyNews(article, type)
+
     }
   };
   const getNewsProcess = async () => {
     try {
-      console.log("hello from start function")
-      const serverDomain = "http://localhost:8001";
+      console.log("hello from start function");
+      const serverDomain = "https://server.somacharnews.com";
+      // const serverDomain = "http://localhost:8001";
       const domainName = window.location.hostname;
-      if (domainName !== "chatgpt.com" ) {
+      if (domainName !== "chatgpt.com") {
         return;
       }
 
@@ -177,7 +192,7 @@ const clickSubmitButton = async () => {
         `${serverDomain}/chrome-extension/get-collected-news`
       );
       const { data } = await newsResponse.json();
-      if (data && data.htmlDescription) {
+      if (data && data?.title?.length && data?.htmlDescription?.length) {
         const modifyTitle = await modifyNews(data.title, "Title");
         const modifyHtmlDescription = await modifyNews(data.htmlDescription);
         let categoryInfo = { route: "", label: "" };
@@ -186,34 +201,34 @@ const clickSubmitButton = async () => {
         if (data.category) {
           categoryInfo = { ...categoryInfo, ...data.category };
           if (!data.category.route || !data.category.label) {
-            if (data.category.route && !data.category.label) {
+            if (data.category?.route?.length && !data?.category?.label) {
               categoryInfo.label = await modifyNews(
                 data.category.route.replaceAll("-", " "),
                 "Category Label"
-              )
+              );
             }
-            if (!data.category.route && data.category.label) {
+            if (!data?.category?.route && data?.category?.label?.length) {
               categoryInfo.route = await modifyNews(
                 data.category.label,
                 "Category Route"
-              ).replaceAll(" ", "-")
+              ).replaceAll(" ", "-");
             }
           }
         }
-        if (data.subcategory) {
+        if (data?.subcategory) {
           subcategoryInfo = { ...subcategoryInfo, ...data.subcategory };
-          if (!data.subcategory.route || !data.subcategory.label) {
-            if (data.subcategory.route && !data.subcategory.label) {
+          if (!data?.subcategory?.route || !data?.subcategory?.label) {
+            if (data?.subcategory?.route?.length && !data?.subcategory?.label) {
               subcategoryInfo.label = await modifyNews(
                 data.subcategory.route.replaceAll("-", " "),
                 "Subcategory Label"
               );
             }
-            if (!data.subcategory.route && data.subcategory.label) {
+            if (!data?.subcategory?.route && data?.subcategory?.label?.length) {
               subcategoryInfo.route = await modifyNews(
                 data.subcategory.label,
                 "Subcategory Route"
-              ).replaceAll(" ", "-")
+              ).replaceAll(" ", "-");
             }
           }
         }
@@ -223,17 +238,17 @@ const clickSubmitButton = async () => {
           modifyHtmlDescription,
           // modifyDescription,
           categoryInfo,
-          subcategoryInfo
+          subcategoryInfo,
         });
 
-        if ( modifyTitle && modifyHtmlDescription) {
+        if ( modifyTitle?.length && modifyHtmlDescription?.length) {
           const divElement = document.createElement("div");
           divElement.innerHTML = modifyHtmlDescription;
           const modifyDescription = divElement.innerText;
           await fetch(`${serverDomain}/chrome-extension/send-news`, {
             method: "POST",
             headers: {
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               ...data,
@@ -241,12 +256,11 @@ const clickSubmitButton = async () => {
               modifyHtmlDescription,
               modifyDescription,
               categoryInfo,
-              subcategoryInfo
-            })
+              subcategoryInfo,
+            }),
           });
         }
       }
-      console.log("hello from before getNewsProcess --<<<")
       await getNewsProcess();
     } catch (error) {
       console.log("Error from getNewsProcess:-", error);
@@ -254,7 +268,7 @@ const clickSubmitButton = async () => {
   };
   try {
     if (window.continueScraping) {
-      return
+      return;
     }
     window.continueScraping = true;
     await getNewsProcess();
