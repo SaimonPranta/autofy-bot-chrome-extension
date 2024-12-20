@@ -93,15 +93,13 @@ const clickSubmitButton = async () => {
       );
       console.log("inputFields ==>>", inputFields);
       if (!inputFields.length) {
-        
-        return modifyNews(article, type)
+        return modifyNews(article, type);
       }
       const inputP = await inputFields[0].querySelector("p");
       if (!inputP) {
         console.log("inputP not found ==>");
 
-        return modifyNews(article, type)
-
+        return modifyNews(article, type);
       }
       inputP.innerText = await inputText;
       const submitBtnSelector =
@@ -113,8 +111,7 @@ const clickSubmitButton = async () => {
       const submitButton = await document.querySelector(submitBtnSelector);
       if (!submitButton) {
         console.log("submitButton not found ==>");
-        return modifyNews(article, type)
-
+        return modifyNews(article, type);
       }
       await submitButton.click();
 
@@ -128,32 +125,33 @@ const clickSubmitButton = async () => {
         if (!outPutFieldList.length) {
           console.log("outPutFieldList not found ==>");
 
-          return modifyNews(article, type)
-
+          return modifyNews(article, type);
         }
         const outPutField = await outPutFieldList[outPutFieldList.length - 1];
         const outPutParagraphField = await outPutField.querySelector("p");
         const output = await outPutParagraphField.innerText;
         if (!output) {
-          return modifyNews(article, type)
-
+          return modifyNews(article, type);
         }
         return output;
-      } else if (type === "Category" || type === "Subcategory") {
+      } else if (
+        type === "Category Label" ||
+        type === "Category Route" ||
+        type === "Subcategory Label" ||
+        type === "Subcategory Route"
+      ) {
         await waitForOutputProcess(3000, outputSectionSelector);
         const outPutFieldList = await document.querySelectorAll(
           'div[class="group/conversation-turn relative flex w-full min-w-0 flex-col agent-turn"]'
         );
         if (!outPutFieldList.length) {
-          return modifyNews(article, type)
-
+          return modifyNews(article, type);
         }
         const outPutField = await outPutFieldList[outPutFieldList.length - 1];
         const outPutParagraphField = await outPutField.querySelector("p");
         const output = await outPutParagraphField.innerText;
         if (!output) {
-          return modifyNews(article, type)
-
+          return modifyNews(article, type);
         }
         return output;
       } else {
@@ -162,20 +160,18 @@ const clickSubmitButton = async () => {
           'code[class="!whitespace-pre hljs language-html"]'
         );
         if (!outPutFieldList.length) {
-          return modifyNews(article, type)
-
+          return modifyNews(article, type);
         }
         const outPutField = await outPutFieldList[outPutFieldList.length - 1];
         const output = await outPutField.innerText;
         if (!output) {
-          return modifyNews(article, type)
+          return modifyNews(article, type);
         }
         return output;
       }
     } catch (error) {
       console.log("Error form modifyNews:-", error);
-      return modifyNews(article, type)
-
+      return modifyNews(article, type);
     }
   };
   const getNewsProcess = async () => {
@@ -202,10 +198,12 @@ const clickSubmitButton = async () => {
           categoryInfo = { ...categoryInfo, ...data.category };
           if (!data.category.route || !data.category.label) {
             if (data.category?.route?.length && !data?.category?.label) {
+              console.log("data?.category?.label -->", data?.category?.route);
               categoryInfo.label = await modifyNews(
                 data.category.route.replaceAll("-", " "),
                 "Category Label"
               );
+              console.log("categoryInfo.label --->>", categoryInfo.label);
             }
             if (!data?.category?.route && data?.category?.label?.length) {
               categoryInfo.route = await modifyNews(
@@ -241,7 +239,7 @@ const clickSubmitButton = async () => {
           subcategoryInfo,
         });
 
-        if ( modifyTitle?.length && modifyHtmlDescription?.length) {
+        if (modifyTitle?.length && modifyHtmlDescription?.length) {
           const divElement = document.createElement("div");
           divElement.innerHTML = modifyHtmlDescription;
           const modifyDescription = divElement.innerText;
