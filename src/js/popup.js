@@ -2,7 +2,7 @@ document.getElementById("clickSubmit").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     chrome.scripting.executeScript({
       target: { tabId: tabs[0].id },
-      function: clickSubmitButton,
+      function: clickSubmitButton
     });
   });
 });
@@ -20,10 +20,11 @@ const clickSubmitButton = async () => {
       if (!selector) {
         resolve("Query selector are required");
       }
-      setInterval(() => {
+     let intervalContainer = setInterval(() => {
         const checkOutputProcessing = document.querySelector(selector);
         if (!checkOutputProcessing) {
           setTimeout(() => {
+          clearInterval(intervalContainer);
             resolve("done");
           }, time);
         }
@@ -35,27 +36,30 @@ const clickSubmitButton = async () => {
       if (!selector) {
         resolve("Query selector are required");
       }
-      setInterval(() => {
+     let intervalContainer = setInterval(() => {
         const checkBtnExist = document.querySelector(selector);
         if (checkBtnExist) {
           setTimeout(() => {
+          clearInterval(intervalContainer);
             resolve("done");
           }, time);
         }
       }, time);
     });
   };
-  const waitInputFieldReady = (time = 1000, element) => {
+  const awaitForParagraphOutputLoad = (praElement, time = 1000) => {
     return new Promise((resolve, reject) => {
-      if (!selector) {
+      if (!praElement) {
         resolve("Query selector are required");
       }
-      setInterval(() => {
-        const checkBtnExist = document.querySelector(selector);
-        if (checkBtnExist) {
-          setTimeout(() => {
-            resolve("done");
-          }, time);
+      let intervalContainer = setInterval(() => {
+        console.log("---praElement -->>", praElement);
+        const element = praElement.querySelector("p");
+        const elementText = element?.innerText;
+        console.log("elementText -->>", elementText);
+        if (elementText && elementText?.trim()?.length > 2) {
+          clearInterval(intervalContainer);
+          resolve("done");
         }
       }, time);
     });
@@ -91,26 +95,21 @@ const clickSubmitButton = async () => {
       const inputFields = await document.querySelectorAll(
         'div[id="prompt-textarea"]'
       );
-      console.log("inputFields ==>>", inputFields);
       if (!inputFields.length) {
         return modifyNews(article, type);
       }
       const inputP = await inputFields[0].querySelector("p");
       if (!inputP) {
-        console.log("inputP not found ==>");
-
         return modifyNews(article, type);
       }
       inputP.innerText = await inputText;
       const submitBtnSelector =
         'button[aria-label="Send prompt"][data-testid="send-button"]';
       await waitForSubmitButtonReady(1000, submitBtnSelector);
-      console.log("submitBtnSelector ==>>", submitBtnSelector);
       // await waitHere(1000);
       //   await waitForSubmitButtonReady(1000, submitBtnSelector);
       const submitButton = await document.querySelector(submitBtnSelector);
       if (!submitButton) {
-        console.log("submitButton not found ==>");
         return modifyNews(article, type);
       }
       await submitButton.click();
@@ -123,13 +122,18 @@ const clickSubmitButton = async () => {
           'div[class="group/conversation-turn relative flex w-full min-w-0 flex-col agent-turn"]'
         );
         if (!outPutFieldList.length) {
-          console.log("outPutFieldList not found ==>");
-
           return modifyNews(article, type);
         }
         const outPutField = await outPutFieldList[outPutFieldList.length - 1];
         const outPutParagraphField = await outPutField.querySelector("p");
+        console.log("outPutFieldList -->", outPutFieldList);
+        console.log("outPutParagraphField -->", outPutParagraphField);
+        // here need
+
+        await awaitForParagraphOutputLoad(outPutField);
         const output = await outPutParagraphField.innerText;
+        console.log("output -->", output);
+
         if (!output) {
           return modifyNews(article, type);
         }
@@ -170,13 +174,11 @@ const clickSubmitButton = async () => {
         return output;
       }
     } catch (error) {
-      console.log("Error form modifyNews:-", error);
       return modifyNews(article, type);
     }
   };
   const getNewsProcess = async () => {
     try {
-      console.log("hello from start function");
       const serverDomain = "https://server.somacharnews.com";
       // const serverDomain = "http://localhost:8001";
       const domainName = window.location.hostname;
@@ -198,12 +200,10 @@ const clickSubmitButton = async () => {
           categoryInfo = { ...categoryInfo, ...data.category };
           if (!data.category.route || !data.category.label) {
             if (data.category?.route?.length && !data?.category?.label) {
-              console.log("data?.category?.label -->", data?.category?.route);
               categoryInfo.label = await modifyNews(
                 data.category.route.replaceAll("-", " "),
                 "Category Label"
               );
-              console.log("categoryInfo.label --->>", categoryInfo.label);
             }
             if (!data?.category?.route && data?.category?.label?.length) {
               categoryInfo.route = await modifyNews(
@@ -236,7 +236,7 @@ const clickSubmitButton = async () => {
           modifyHtmlDescription,
           // modifyDescription,
           categoryInfo,
-          subcategoryInfo,
+          subcategoryInfo
         });
 
         if (modifyTitle?.length && modifyHtmlDescription?.length) {
@@ -246,7 +246,7 @@ const clickSubmitButton = async () => {
           await fetch(`${serverDomain}/chrome-extension/send-news`, {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
+              "Content-Type": "application/json"
             },
             body: JSON.stringify({
               ...data,
@@ -254,8 +254,8 @@ const clickSubmitButton = async () => {
               modifyHtmlDescription,
               modifyDescription,
               categoryInfo,
-              subcategoryInfo,
-            }),
+              subcategoryInfo
+            })
           });
         }
       }
