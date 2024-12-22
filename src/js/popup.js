@@ -68,8 +68,8 @@ const clickSubmitButton = async () => {
   const modifyNews = async (article, type = "") => {
     try {
       const chatGptDesPrompt =
-        " rewrite this news make the html layout same rewrite inner text, inner text main context and information will be same but line will be more changed";
-      const chatGptDesEndPrompt = "result show in code element";
+        " rewrite this news make the html layout same rewrite inner text, inner text main context and information will be same but line will be more changed.";
+      const chatGptDesEndPrompt = "result show in code element and Please provide a single, concise response without offering multiple options or repeated answers.";
       const chatGptTitlePrompt = "keep this title content same just rewrite it";
       const chatGptTitleEndPrompt =
         "give me only title result plain text, nothing else not.";
